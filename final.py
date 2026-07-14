@@ -1,36 +1,17 @@
 import pygame
 import math
-import sys
 import random
 
-# Инициализация
 pygame.init()
 WIDTH, HEIGHT = 1200, 800
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
-pygame.display.set_caption("Космическая гравитация с коллизиями")
+pygame.display.set_caption("Kosmos simulator")
 clock = pygame.time.Clock()
 
-# Константы
-G = 6.67  # Гравитационная постоянная
-COLLISION_DAMPING = 0.8  # Коэффициент упругости (1 - упругое, 0 - неупругое)
-
-# Цвета
-WHITE = (255, 255, 255)
-RED = (255, 0, 0)
-BLUE = (0, 100, 255)
-YELLOW = (255, 255, 0)
-GREEN = (0, 255, 0)
-ORANGE = (255, 165, 0)
-PURPLE = (128, 0, 128)
-BLACK = (0, 0, 0)
-GRAY = (100, 100, 100)
-LIGHT_BLUE = (100, 150, 255)
-CYAN = (0, 255, 255)
-MAGENTA = (255, 0, 255)
-DARK_GRAY = (40, 40, 40)
+G = 6.67
+COLLISION_DAMPING = 0.8
 
 class Particle:
-    """Класс для частиц взрыва"""
     def __init__(self, x, y, vx, vy, color, size, lifetime=60):
         self.x = x
         self.y = y
@@ -55,12 +36,11 @@ class Particle:
     def draw(self, screen):
         if not self.alive:
             return
-        alpha = int(255 * (self.lifetime / self.max_lifetime))
         size = max(1, int(self.size * (self.lifetime / self.max_lifetime)))
         pygame.draw.circle(screen, self.color, (int(self.x), int(self.y)), size)
 
 class Body:
-    def __init__(self, x, y, vx=0, vy=0, mass=50, color=RED, radius=20, is_fixed=False):
+    def __init__(self, x, y, vx=0, vy=0, mass=50, color=(255,0,0), radius=20, is_fixed=False):
         self.x = x
         self.y = y
         self.vx = vx
@@ -75,16 +55,12 @@ class Body:
         self.drag_offset_x = 0
         self.drag_offset_y = 0
         self.is_selected = False
-        
-        # Орбитальные параметры
         self.orbit_radius = 0
         self.orbit_speed = 0
         self.orbit_period = 0
         self.orbit_angle = 0
         self.eccentricity = 0
         self.orbital_energy = 0
-        
-        # Для управления скоростью
         self.velocity_control_active = False
         self.velocity_control_start = None
         
@@ -185,8 +161,8 @@ class Body:
         num_particles = min(num_particles, 100)
         
         explosion_colors = [
-            RED, ORANGE, YELLOW, (255, 200, 0),
-            (255, 100, 0), (200, 50, 0), WHITE
+            (255, 0, 0), (255, 165, 0), (255, 255, 0), (255, 200, 0),
+            (255, 100, 0), (200, 50, 0), (255, 255, 255)
         ]
         
         for _ in range(num_particles):
@@ -302,15 +278,15 @@ class Body:
         
     def update_color(self):
         if self.mass > 300:
-            self.color = YELLOW
+            self.color = (255, 255, 0)
         elif self.mass > 200:
-            self.color = ORANGE
+            self.color = (255, 165, 0)
         elif self.mass > 100:
-            self.color = RED
+            self.color = (255, 0, 0)
         elif self.mass > 50:
-            self.color = PURPLE
+            self.color = (128, 0, 128)
         else:
-            self.color = BLUE
+            self.color = (0, 100, 255)
         
     def get_radius(self):
         return max(5, self.radius * (self.mass ** (1/3)) / 3.7)
@@ -340,46 +316,38 @@ class Body:
         self.is_dragging = False
         
     def draw_velocity_control(self, screen):
-        """Рисует интерфейс управления скоростью"""
         if not self.is_selected or self.is_fixed or not self.alive:
             return
             
-        # Рисуем текущий вектор скорости
         speed = math.sqrt(self.vx**2 + self.vy**2)
         if speed > 0.1:
-            # Вектор скорости
             scale = 30
             end_x = self.x + self.vx * scale
             end_y = self.y + self.vy * scale
             
-            # Основная линия
-            pygame.draw.line(screen, GREEN, (self.x, self.y), (end_x, end_y), 3)
+            pygame.draw.line(screen, (0, 255, 0), (self.x, self.y), (end_x, end_y), 3)
             
-            # Стрелка
             angle = math.atan2(self.vy, self.vx)
             arrow_size = 15
-            pygame.draw.line(screen, GREEN, 
+            pygame.draw.line(screen, (0, 255, 0), 
                            (end_x, end_y),
                            (end_x - arrow_size * math.cos(angle - 0.5),
                             end_y - arrow_size * math.sin(angle - 0.5)), 3)
-            pygame.draw.line(screen, GREEN,
+            pygame.draw.line(screen, (0, 255, 0),
                            (end_x, end_y),
                            (end_x - arrow_size * math.cos(angle + 0.5),
                             end_y - arrow_size * math.sin(angle + 0.5)), 3)
             
-            # Круг-ручка для изменения направления
             handle_radius = 8
-            pygame.draw.circle(screen, YELLOW, (int(end_x), int(end_y)), handle_radius)
-            pygame.draw.circle(screen, WHITE, (int(end_x), int(end_y)), handle_radius, 2)
+            pygame.draw.circle(screen, (255, 255, 0), (int(end_x), int(end_y)), handle_radius)
+            pygame.draw.circle(screen, (255, 255, 255), (int(end_x), int(end_y)), handle_radius, 2)
             
-            # Подпись скорости
             font = pygame.font.Font(None, 20)
-            speed_text = font.render(f"v={speed:.2f}", True, GREEN)
+            speed_text = font.render(f"v={speed:.2f}", True, (0, 255, 0))
             screen.blit(speed_text, (end_x + 10, end_y - 10))
             
-            # Информация о управлении
             font_small = pygame.font.Font(None, 18)
-            help_text = font_small.render("Перетащите желтый круг для изменения скорости", True, YELLOW)
+            help_text = font_small.render("Перетащите желтый круг для изменения скорости", True, (255, 255, 0))
             screen.blit(help_text, (self.x - 100, self.y - self.get_radius() - 40))
         
     def draw(self, screen):
@@ -388,14 +356,12 @@ class Body:
             
         rad = self.get_radius()
         
-        # Если объект выбран, рисуем орбитальную линию
         if self.is_selected and not self.is_fixed:
             if self.orbit_radius > 10:
-                pygame.draw.circle(screen, CYAN, 
+                pygame.draw.circle(screen, (0, 255, 255), 
                                  (int(star.x), int(star.y)), 
                                  int(self.orbit_radius), 1)
         
-        # Свечение для массивных объектов
         if self.mass > 100:
             for i in range(3, 0, -1):
                 glow_rad = rad + i * 10
@@ -403,64 +369,33 @@ class Body:
                                  (int(self.x), int(self.y)), 
                                  int(glow_rad), 1)
         
-        # Если объект перетаскивается, рисуем подсветку
         if self.is_dragging:
-            pygame.draw.circle(screen, LIGHT_BLUE, (int(self.x), int(self.y)), int(rad + 5), 3)
+            pygame.draw.circle(screen, (100, 150, 255), (int(self.x), int(self.y)), int(rad + 5), 3)
         
-        # Рамка для выбранного объекта
         if self.is_selected:
-            pygame.draw.circle(screen, MAGENTA, (int(self.x), int(self.y)), int(rad + 8), 3)
+            pygame.draw.circle(screen, (255, 0, 255), (int(self.x), int(self.y)), int(rad + 8), 3)
         
-        # Рамка для фиксированных объектов
         if self.is_fixed:
-            pygame.draw.circle(screen, WHITE, (int(self.x), int(self.y)), int(rad), 2)
+            pygame.draw.circle(screen, (255, 255, 255), (int(self.x), int(self.y)), int(rad), 2)
         
         pygame.draw.circle(screen, self.color, (int(self.x), int(self.y)), int(rad))
         
-        # Отображаем массу
         if self.mass > 10:
             font = pygame.font.Font(None, 16)
-            mass_text = font.render(f"{int(self.mass)}", True, WHITE)
+            mass_text = font.render(f"{int(self.mass)}", True, (255, 255, 255))
             text_rect = mass_text.get_rect(center=(int(self.x), int(self.y)))
             screen.blit(mass_text, text_rect)
         
-        # Рисуем управление скоростью
         self.draw_velocity_control(screen)
 
-# Создаем объекты
-star = Body(WIDTH//2, HEIGHT//2, vx=0, vy=0, mass=400, color=YELLOW, radius=10, is_fixed=True)
+star = Body(WIDTH//2, HEIGHT//2, vx=0, vy=0, mass=400, color=(255, 255, 0), radius=10, is_fixed=True)
 
-planet1 = Body(
-    WIDTH//2 + 200, 
-    HEIGHT//2, 
-    vx=0, 
-    vy=3.2, 
-    mass=30, 
-    color=BLUE, 
-    radius=15
-)
+planet1 = Body(WIDTH//2 + 200, HEIGHT//2, vx=0, vy=3.2, mass=30, color=(0, 100, 255), radius=15)
 
-planet2 = Body(
-    WIDTH//2 - 250, 
-    HEIGHT//2 + 50, 
-    vx=0, 
-    vy=-2.8, 
-    mass=25, 
-    color=GREEN, 
-    radius=12
-)
+planet2 = Body(WIDTH//2 - 250, HEIGHT//2 + 50, vx=0, vy=-2.8, mass=25, color=(0, 255, 0), radius=12)
 
-planet3 = Body(
-    WIDTH//2 + 100, 
-    HEIGHT//2 - 300, 
-    vx=4.5, 
-    vy=1.5, 
-    mass=15, 
-    color=RED, 
-    radius=10
-)
+planet3 = Body(WIDTH//2 + 100, HEIGHT//2 - 300, vx=4.5, vy=1.5, mass=15, color=(255, 0, 0), radius=10)
 
-# Добавляем несколько маленьких астероидов
 asteroids = []
 for i in range(10):
     angle = random.uniform(0, 2 * math.pi)
@@ -474,26 +409,22 @@ for i in range(10):
     color = (150, 150, 150)
     asteroids.append(Body(x, y, vx, vy, mass, color, 5))
 
-# Список всех объектов
 bodies = [star, planet1, planet2, planet3] + asteroids
-
-# Список частиц взрыва
 explosion_particles = []
 
-# Параметры отображения
 show_trails = True
 show_collisions = True
 collision_counter = 0
 font = pygame.font.Font(None, 24)
 font_small = pygame.font.Font(None, 18)
 
-# Переменные для перетаскивания
 dragging_body = None
 mouse_pressed = False
 selected_body = None
-velocity_control_drag = False  # Флаг перетаскивания контроллера скорости
+velocity_control_drag = False
 
-# Главный игровой цикл
+#эта строчка служит для визуального отделения
+
 running = True
 paused = False
 while running:
@@ -502,11 +433,10 @@ while running:
             running = False
             
         elif event.type == pygame.MOUSEBUTTONDOWN:
-            if event.button == 1:  # Левая кнопка мыши
+            if event.button == 1:
                 mouse_x, mouse_y = pygame.mouse.get_pos()
                 mouse_pressed = True
                 
-                # Проверяем, не кликнули ли по контроллеру скорости
                 if selected_body and not selected_body.is_fixed:
                     speed = math.sqrt(selected_body.vx**2 + selected_body.vy**2)
                     if speed > 0.1:
@@ -519,7 +449,6 @@ while running:
                             velocity_control_drag = True
                             continue
                 
-                # Проверяем клик по объектам
                 clicked_body = None
                 for body in reversed(bodies):
                     if body.is_clicked(mouse_x, mouse_y) and not body.is_fixed:
@@ -540,7 +469,7 @@ while running:
                     selected_body = None
                         
         elif event.type == pygame.MOUSEBUTTONDOWN:
-            if event.button == 3:  # Правая кнопка мыши
+            if event.button == 3:
                 if selected_body and not selected_body.is_fixed:
                     mouse_x, mouse_y = pygame.mouse.get_pos()
                     dx = mouse_x - selected_body.x
@@ -564,7 +493,6 @@ while running:
         elif event.type == pygame.MOUSEMOTION:
             if velocity_control_drag and selected_body and not selected_body.is_fixed:
                 mouse_x, mouse_y = pygame.mouse.get_pos()
-                # Изменяем направление скорости
                 dx = mouse_x - selected_body.x
                 dy = mouse_y - selected_body.y
                 dist = math.sqrt(dx**2 + dy**2)
@@ -589,16 +517,16 @@ while running:
                 selected_body = None
                 velocity_control_drag = False
                 
-                star = Body(WIDTH//2, HEIGHT//2, vx=0, vy=0, mass=1000, color=YELLOW, radius=10, is_fixed=True)
-                planet1 = Body(WIDTH//2 + 200, HEIGHT//2, vx=0, vy=3.2, mass=30, color=BLUE, radius=15)
-                planet2 = Body(WIDTH//2 - 250, HEIGHT//2 + 50, vx=0, vy=-2.8, mass=25, color=GREEN, radius=12)
-                planet3 = Body(WIDTH//2 + 100, HEIGHT//2 - 300, vx=4.5, vy=1.5, mass=15, color=RED, radius=10)
+                star = Body(WIDTH//2, HEIGHT//2, vx=0, vy=0, mass=1000, color=(255, 255, 0), radius=10, is_fixed=True)
+                planet1 = Body(WIDTH//2 + 200, HEIGHT//2, vx=0, vy=3.2, mass=30, color=(0, 100, 255), radius=15)
+                planet2 = Body(WIDTH//2 - 250, HEIGHT//2 + 50, vx=0, vy=-2.8, mass=25, color=(0, 255, 0), radius=12)
+                planet3 = Body(WIDTH//2 + 100, HEIGHT//2 - 300, vx=4.5, vy=1.5, mass=15, color=(255, 0, 0), radius=10)
                 asteroids = []
                 for i in range(10):
                     angle = random.uniform(0, 2 * math.pi)
                     dist = random.uniform(100, 350)
                     x = WIDTH//2 + dist * math.cos(angle)
-                    y = HEIGHT//2 + dist * math.sin(angle)
+                    y = WIDTH//2 + dist * math.sin(angle)
                     speed = random.uniform(2, 5)
                     vx = -speed * math.sin(angle)
                     vy = speed * math.cos(angle)
@@ -624,7 +552,7 @@ while running:
             elif event.key == pygame.K_m:
                 mouse_x, mouse_y = pygame.mouse.get_pos()
                 mass = random.uniform(10, 50)
-                color = random.choice([RED, BLUE, GREEN, ORANGE, PURPLE])
+                color = random.choice([(255, 0, 0), (0, 100, 255), (0, 255, 0), (255, 165, 0), (128, 0, 128)])
                 new_planet = Body(mouse_x, mouse_y, vx=random.uniform(-2, 2), 
                                 vy=random.uniform(-2, 2), mass=mass, color=color, radius=10)
                 bodies.append(new_planet)
@@ -649,18 +577,15 @@ while running:
                         selected_body.vy *= 0.9
 
     if not paused:
-        # Обновляем частицы взрыва
         for particle in explosion_particles[:]:
             particle.update()
             if not particle.alive:
                 explosion_particles.remove(particle)
         
-        # Рассчитываем орбитальные параметры
         for body in bodies:
             if body != star:
                 body.calculate_orbit_params(star)
         
-        # Применяем гравитацию
         for i, body1 in enumerate(bodies):
             if not body1.alive:
                 continue
@@ -683,16 +608,13 @@ while running:
                 if len(body.trail) > 30:
                     body.trail.pop(0)
 
-    # --- Отрисовка ---
-    screen.fill(BLACK)
+    screen.fill((0, 0, 0))
     
-    # Рисуем сетку
     for x in range(0, WIDTH, 50):
         pygame.draw.line(screen, (20, 20, 20), (x, 0), (x, HEIGHT))
     for y in range(0, HEIGHT, 50):
         pygame.draw.line(screen, (20, 20, 20), (0, y), (WIDTH, y))
     
-    # Рисуем следы
     if show_trails:
         for body in bodies:
             if len(body.trail) > 1:
@@ -702,15 +624,12 @@ while running:
                                      (int(body.trail[i][0]), int(body.trail[i][1])), 
                                      size)
     
-    # Рисуем все объекты
     for body in bodies:
         body.draw(screen)
     
-    # Рисуем частицы взрыва
     for particle in explosion_particles:
         particle.draw(screen)
     
-    # Отображаем информацию о выбранном объекте
     if selected_body and selected_body != star:
         info_y = 10
         speed = math.sqrt(selected_body.vx**2 + selected_body.vy**2)
@@ -719,59 +638,38 @@ while running:
             f" Радиус орбиты: {int(selected_body.orbit_radius)}",
             f" Орб. скорость: {selected_body.orbit_speed:.2f}",
             f" Полная скорость: {speed:.2f}",
-            f" Период: {selected_body.orbit_period:.1f}" if selected_body.orbit_period != float('inf') else " Период: бесконечный",
-            f" Эксцентриситет: {selected_body.eccentricity:.3f}",
-            f" Энергия: {selected_body.orbital_energy:.2f}",
-            f"",
-            f"Управление скоростью:",
-            f"Перетащите ЖЕЛТЫЙ круг",
-            f"вверх, вниз - изменить модуль",
-            f"ПКМ - направить скорость",
-            f"Delete - удалить"
+            f" Период: {selected_body.orbit_period:.1f}" if selected_body.orbit_period != float('inf') else " Период: бесконечный"
         ]
         
         for i, text in enumerate(orbit_info):
-            text_surface = font_small.render(text, True, CYAN)
+            text_surface = font_small.render(text, True, (0, 255, 255))
             screen.blit(text_surface, (WIDTH - 250, info_y + i * 20))
     elif selected_body == star:
         info_y = 10
         star_info = [
-            f" ЗВЕЗДА (фиксирована)",
             f"Масса: {int(star.mass)}",
             f"Объектов на орбите: {len(bodies)-1}"
         ]
         for i, text in enumerate(star_info):
-            text_surface = font_small.render(text, True, YELLOW)
+            text_surface = font_small.render(text, True, (255, 255, 0))
             screen.blit(text_surface, (WIDTH - 250, info_y + i * 20))
     
-    # Информация на экране
     info = [
-        f"Пробел - пауза | R - сброс | C - коллизии | T - следы | A - астероид | M - планета",
         f"Объектов: {len(bodies)} | Коллизий: {collision_counter} | Частиц: {len(explosion_particles)}",
-        f"G = {G} | Упругость: {COLLISION_DAMPING}",
-        f" Клик по объекту - выбрать | Перетащить ЖЕЛТЫЙ круг - изменить направление",
-        f"Выбран: {selected_body.color if selected_body else 'Нет'}"
-    ]
+        ]
     for i, text in enumerate(info):
-        text_surface = font.render(text, True, WHITE)
+        text_surface = font.render(text, True, (255, 255, 255))
         screen.blit(text_surface, (10, 10 + i * 25))
     
-    # Отображаем статус коллизий
-    if show_collisions and collision_counter > 0:
-        col_text = font.render(f" ВЗРЫВ! {collision_counter}", True, RED)
-        screen.blit(col_text, (WIDTH//2 - 100, 50))
-    
-    # Отображаем подсказку при перетаскивании
     if dragging_body:
-        help_text = font.render("Перетаскивание... Отпустите кнопку мыши", True, LIGHT_BLUE)
+        help_text = font.render("Перетаскивание... Отпустите кнопку мыши", True, (100, 150, 255))
         screen.blit(help_text, (WIDTH//2 - 150, HEIGHT - 50))
     elif velocity_control_drag:
-        help_text = font.render("Изменение направления скорости...", True, YELLOW)
+        help_text = font.render("Изменение направления скорости...", True, (255, 255, 0))
         screen.blit(help_text, (WIDTH//2 - 150, HEIGHT - 50))
     
     pygame.display.flip()
     clock.tick(60)
 
 pygame.quit()
-sys.exit()
-#на удачу
+#йоу?
